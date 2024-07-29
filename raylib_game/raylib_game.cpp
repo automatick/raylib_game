@@ -13,8 +13,21 @@ bool checkCollisionPW(const Rectangle& player, const vector<Rectangle>& walls) {
     return false;
 }
 
-struct Bullet
-{
+struct Enemy {
+    Rectangle hitbox = { 30, 30, 40, 40 };
+	Vector2 position;
+    unsigned int health;
+    unsigned int width;
+	unsigned int height;
+};
+
+struct Player {
+    Rectangle hitbox = { 30, 30, 40, 40 };
+	Vector2 position;
+	float speed;
+};
+
+struct Bullet {
     Vector2 position;
     Vector2 direction;
     float speed;
@@ -38,8 +51,8 @@ int main(void)
 
     InitWindow(screenWidth, screenHeight, "raylib [core] example - 2d camera");
 
-    Rectangle player = { 30, 30, 40, 40 };
-    Vector2 playerCenter = { player.x + player.width / 2.0f, player.y + player.height / 2.0f };
+    Player player;
+    Vector2 playerCenter = { player.hitbox.x + player.hitbox.width / 2.0f, player.hitbox.y + player.hitbox.height / 2.0f };
     Rectangle map = { 0, 0, 5000, 4000 };
     vector<Bullet> ammos = {};
     float shootCooldown = 0.5f;
@@ -60,17 +73,17 @@ int main(void)
     };
 
     Camera2D camera = { 0 };
-    camera.target = { player.x + player.width / 2.0f, player.y + player.height / 2.0f };
+    camera.target = { player.hitbox.x + player.hitbox.width / 2.0f, player.hitbox.y + player.hitbox.height / 2.0f };
     camera.offset = { screenWidth / 2.0f, screenHeight / 2.0f };
     camera.rotation = 0.0f;
     camera.zoom = 1.0f;
     unsigned char dashPoints = 200;
 
-    SetTargetFPS(120);
+    SetTargetFPS(60);
 
     while (!WindowShouldClose())
     {
-        Rectangle nextPosition = player;
+        Rectangle nextPosition = player.hitbox;
         Vector2 movement = { 0.0f, 0.0f };
 
         if (IsKeyDown(KEY_D)) movement.x += 10;
@@ -111,12 +124,12 @@ int main(void)
         nextPosition.y += movement.y;
 
         if (!checkCollisionPW(nextPosition, walls)) {
-            player = nextPosition;
-            playerCenter = { player.x + player.width / 2.0f, player.y + player.height / 2.0f };
+            player.hitbox = nextPosition;
+            playerCenter = { player.hitbox.x + player.hitbox.width / 2.0f, player.hitbox.y + player.hitbox.height / 2.0f };
         }
 
         dashPoints = min(dashPoints + 1, 200);
-        camera.target = { player.x + player.width / 2.0f, player.y + player.height / 2.0f };
+        camera.target = { player.hitbox.x + player.hitbox.width / 2.0f, player.hitbox.y + player.hitbox.height / 2.0f };
 
         float zoomChange = GetMouseWheelMove() * 0.05f;
         if (zoomChange != 0.0f) {
@@ -163,7 +176,7 @@ int main(void)
             DrawRectangleRec(wall, LIGHTGRAY);
         }
 
-        DrawRectangleRec(player, RED);
+        DrawRectangleRec(player.hitbox, RED);
 
         for (const auto& bullet : ammos)
         {
@@ -183,13 +196,13 @@ int main(void)
         }
         EndMode2D();
 
-        DrawRectangle(10, 10, 250, 40, Fade(SKYBLUE, 1));
+        DrawRectangle(10, 10, 250, 40, Fade(SKYBLUE, 0.5f));
 
-        DrawRectangle(10, 10, (int)(250 * (dashPoints / 200.0f)), 40, GREEN);
+        DrawRectangle(10, 10, (int)(250 * (dashPoints / 200.0f)), 40, DARKBLUE);
 
         DrawRectangleLines(10, 10, 250, 40, BLUE);
 
-        DrawText(TextFormat("Dash Points: %i", dashPoints), 20, 20, 25, BLACK);
+        DrawText(TextFormat("Dash Points: %i", dashPoints), 20, 20, 25, WHITE);
 
         EndDrawing();
     }
