@@ -95,7 +95,6 @@ int main(void)
             };
             ammos.push_back(bullet);
 
-            // Сброс кулдауна
             shootTimer = shootCooldown;
         }
         if (IsKeyDown(KEY_LEFT_SHIFT))
@@ -166,7 +165,6 @@ int main(void)
 
         DrawRectangleRec(player, RED);
 
-        // Draw bullets
         for (const auto& bullet : ammos)
         {
             DrawCircleV(bullet.position, bullet.radius, DARKBLUE);
@@ -185,8 +183,11 @@ int main(void)
         }
         EndMode2D();
 
-        DrawRectangle(10, 10, 250, 113, Fade(SKYBLUE, 1));
-        DrawRectangleLines(10, 10, 250, 113, BLUE);
+        DrawRectangle(10, 10, 250, 40, Fade(SKYBLUE, 1));
+
+        DrawRectangle(10, 10, (int)(250 * (dashPoints / 200.0f)), 40, GREEN);
+
+        DrawRectangleLines(10, 10, 250, 40, BLUE);
 
         DrawText(TextFormat("Dash Points: %i", dashPoints), 20, 20, 25, BLACK);
 
