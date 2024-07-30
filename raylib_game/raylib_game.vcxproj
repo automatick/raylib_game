@@ -131,6 +131,10 @@
   <ItemGroup>
     <ClCompile Include="raylib_game.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="funcs.h" />
+    <ClInclude Include="types.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
