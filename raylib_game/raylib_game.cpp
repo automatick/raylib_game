@@ -65,7 +65,12 @@ void keyHandle(vector<Rectangle>& walls, vector<Bullet>& ammos, Player& player, 
             (mousePosition.x - camera.offset.x) / camera.zoom + camera.target.x,
             (mousePosition.y - camera.offset.y) / camera.zoom + camera.target.y
         };
-        Vector2 direction = Vector2({ worldMousePosition.x - playerCenter.x, worldMousePosition.y - playerCenter.y });
+        Vector2 direction = { worldMousePosition.x - playerCenter.x, worldMousePosition.y - playerCenter.y };
+
+        // Нормализация вектора направления
+        float length = sqrtf(direction.x * direction.x + direction.y * direction.y);
+        direction.x /= length;
+        direction.y /= length;
 
         Bullet bullet = { playerCenter, direction, 15.0f, 10.0f };
         ammos.push_back(bullet);
