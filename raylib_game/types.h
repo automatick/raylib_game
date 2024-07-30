@@ -11,6 +11,7 @@ struct Enemy {
 struct Player {
     Rectangle hitbox = { 30, 30, 40, 40 };
     Vector2 position;
+    unsigned char hearts = 100;
     float speed;
 };
 

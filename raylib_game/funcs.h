@@ -1,44 +1,9 @@
 #pragma once
-#include "raylib.h"
-#include "types.h"
-#include <vector>
-#include <cmath>
-#include <optional>
-
-using namespace std;
-
-bool checkCollisionPW(const Rectangle& player, const vector<Rectangle>& walls) {
-    for (const auto& wall : walls) {
-        if (CheckCollisionRecs(player, wall)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool checkCollisionBullet(const Bullet& bullet, const vector<Rectangle>& walls) {
-    for (const auto& wall : walls) {
-        if (CheckCollisionCircleRec(bullet.position, bullet.radius, wall)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-template <typename T>
-T clamp(T value, T min, T max) {
-    if (value < min) return min;
-    if (value > max) return max;
-    return value;
-}
+#include "handle_funcs.h"
 
 void keyHandle(vector<Rectangle>& walls, vector<Bullet>& ammos, Player& player, Camera2D& camera, unsigned char& dashPoints, float& shootTimer, float shootCooldown, Vector2& playerCenter) {
     Vector2 movement = { 0.0f, 0.0f };
-
-    if (IsKeyDown(KEY_D)) movement.x += 10;
-    if (IsKeyDown(KEY_A)) movement.x -= 10;
-    if (IsKeyDown(KEY_W)) movement.y -= 10;
-    if (IsKeyDown(KEY_S)) movement.y += 10;
+    moveHandle(movement, 1.0f);
 
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && shootTimer <= 0.0f) {
         Vector2 mousePosition = GetMousePosition();
@@ -48,7 +13,6 @@ void keyHandle(vector<Rectangle>& walls, vector<Bullet>& ammos, Player& player, 
         };
         Vector2 direction = { worldMousePosition.x - playerCenter.x, worldMousePosition.y - playerCenter.y };
 
-        // Нормализация вектора направления
         float length = sqrtf(direction.x * direction.x + direction.y * direction.y);
         direction.x /= length;
         direction.y /= length;
@@ -59,11 +23,7 @@ void keyHandle(vector<Rectangle>& walls, vector<Bullet>& ammos, Player& player, 
         shootTimer = shootCooldown;
     }
 
-    if (IsKeyDown(KEY_LEFT_SHIFT) && dashPoints > 20) {
-        movement.x *= 2;
-        movement.y *= 2;
-        dashPoints = max(dashPoints - 5, 0);
-    }
+    dashHandle(movement, dashPoints);
 
     Rectangle nextPosition = player.hitbox;
     nextPosition.x += movement.x;
@@ -71,13 +31,13 @@ void keyHandle(vector<Rectangle>& walls, vector<Bullet>& ammos, Player& player, 
 
     if (!checkCollisionPW(nextPosition, walls)) {
         player.hitbox = nextPosition;
-        playerCenter = { player.hitbox.x + player.hitbox.width / 2.0f, player.hitbox.y + player.hitbox.height / 2.0f };
+        playerCenter = calcPlayerCenter(player);
     }
 
     dashPoints = min(dashPoints + 1, 200);
-    camera.target = { player.hitbox.x + player.hitbox.width / 2.0f, player.hitbox.y + player.hitbox.height / 2.0f };
+    camera.target = calcPlayerCenter(player);
     float zoomChange = GetMouseWheelMove() * 0.05f;
-    camera.zoom = clamp(camera.zoom + zoomChange, 0.1f, 3.0f);
+    camera.zoom = Clamp(camera.zoom + zoomChange, 0.1f, 3.0f);
 
     if (IsKeyPressed(KEY_R)) {
         camera.zoom = 1.0f;
@@ -85,7 +45,7 @@ void keyHandle(vector<Rectangle>& walls, vector<Bullet>& ammos, Player& player, 
     }
 }
 
-void updateBullets(vector<Bullet>& ammos, vector<Rectangle>& walls, vector<Enemy>& enemies) {
+void updateBullets(vector<Bullet>& ammos, vector<Rectangle>& walls, vector<Enemy>& enemies, unsigned int kills) {
     for (auto it = ammos.begin(); it != ammos.end(); ) {
         Bullet& bullet = *it;
         bullet.position.x += bullet.direction.x * bullet.speed;
@@ -97,9 +57,10 @@ void updateBullets(vector<Bullet>& ammos, vector<Rectangle>& walls, vector<Enemy
         for (auto& enemy : enemies) {
             if (CheckCollisionCircleRec(bullet.position, bullet.radius, enemy.hitbox)) {
                 hitEnemy = true;
-                enemy.health -= 10;  // Уменьшение здоровья врага при попадании пули
+                enemy.health -= 10;
                 if (enemy.health <= 0) {
-                    enemy.hitbox = { 0, 0, 0, 0 };  // Удаление врага
+                    enemy.hitbox = { 0, 0, 0, 0 };
+					kills++;
                 }
                 break;
             }
@@ -114,13 +75,64 @@ void updateBullets(vector<Bullet>& ammos, vector<Rectangle>& walls, vector<Enemy
     }
 }
 
-void updateEnemies(vector<Enemy>& enemies, const Player& player) {
+void updateEnemies(vector<Enemy>& enemies, Player& player, const vector<Rectangle>& walls, unsigned int kills) {
+    srand(time(nullptr));
     for (auto& enemy : enemies) {
+
         Vector2 direction = { player.hitbox.x - enemy.hitbox.x, player.hitbox.y - enemy.hitbox.y };
         float length = sqrtf(direction.x * direction.x + direction.y * direction.y);
         direction.x /= length;
         direction.y /= length;
 
+        float randomFactorX = (rand() % 200 - 100) / 100.0f;
+        float randomFactorY = (rand() % 200 - 100) / 100.0f;
+        direction.x += randomFactorX;
+        direction.y += randomFactorY;
+        length = sqrtf(direction.x * direction.x + direction.y * direction.y);
+        direction.x /= length;
+        direction.y /= length;
+
+        Rectangle newHitbox = enemy.hitbox;
+        newHitbox.x += direction.x * enemy.speed;
+        newHitbox.y += direction.y * enemy.speed;
+
+        bool collision = std::ranges::any_of(walls.begin(), walls.end(), [&](const Rectangle& wall) {
+            return CheckCollisionRecs(newHitbox, wall);
+            });
+
+        if (collision) {
+            bool foundAlternative = false;
+            Vector2 alternativeDirections[] = {
+                { -direction.y, direction.x },
+                { direction.y, -direction.x }
+            };
+
+            for (const auto& altDir : alternativeDirections) {
+                newHitbox.x = enemy.hitbox.x + altDir.x * enemy.speed;
+                newHitbox.y = enemy.hitbox.y + altDir.y * enemy.speed;
+                collision = std::any_of(walls.begin(), walls.end(), [&](const Rectangle& wall) {
+                    return CheckCollisionRecs(newHitbox, wall);
+                    });
+
+                if (!collision) {
+                    direction = altDir;
+                    foundAlternative = true;
+                    break;
+                }
+            }
+
+            if (!foundAlternative) {
+                direction = { 0, 0 };
+            }
+        }
+        if (CheckCollisionRecs(player.hitbox, enemy.hitbox)) {
+			direction = { 0, 0 };
+            player.hearts -= 1;
+            if (player.hearts <= 0) {
+				player.hitbox = { 0, 0, 0, 0 };
+                exit(kills);
+			}
+        }
         enemy.hitbox.x += direction.x * enemy.speed;
         enemy.hitbox.y += direction.y * enemy.speed;
     }
