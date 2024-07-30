@@ -66,11 +66,9 @@ bool checkCollisionBullet(const Bullet& bullet, const vector<Rectangle>& walls) 
     return false;
 }
 
-template <typename T>
-concept Number = std::is_arithmetic_v<T>;
 
-template <typename Number>
-Number Clamp(Number value, Number min, Number max) {
+template <typename T>
+T Clamp(T value, T min, T max) {
     if (value < min) return min;
     if (value > max) return max;
     return value;

@@ -1,4 +1,4 @@
-﻿#include "funcs.h"
+﻿#include "menu.h"
 
 using namespace std;
 
@@ -46,6 +46,8 @@ int main(void)
     unsigned int kills = 0;
 
     SetTargetFPS(60);
+
+    mainMenu();
 
     while (!WindowShouldClose())
     {

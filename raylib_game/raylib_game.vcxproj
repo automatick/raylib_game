@@ -134,6 +134,7 @@
   <ItemGroup>
     <ClInclude Include="funcs.h" />
     <ClInclude Include="handle_funcs.h" />
+    <ClInclude Include="menu.h" />
     <ClInclude Include="types.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

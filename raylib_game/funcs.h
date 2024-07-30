@@ -1,4 +1,3 @@
-#pragma once
 #include "handle_funcs.h"
 
 void keyHandle(vector<Rectangle>& walls, vector<Bullet>& ammos, Player& player, Camera2D& camera, unsigned char& dashPoints, float& shootTimer, float shootCooldown, Vector2& playerCenter) {
@@ -96,7 +95,7 @@ void updateEnemies(vector<Enemy>& enemies, Player& player, const vector<Rectangl
         newHitbox.x += direction.x * enemy.speed;
         newHitbox.y += direction.y * enemy.speed;
 
-        bool collision = std::ranges::any_of(walls.begin(), walls.end(), [&](const Rectangle& wall) {
+        bool collision = std::any_of(walls.begin(), walls.end(), [&](const Rectangle& wall) {
             return CheckCollisionRecs(newHitbox, wall);
             });
 
