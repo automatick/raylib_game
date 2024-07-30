@@ -48,6 +48,7 @@ void keyHandle(vector<Rectangle>& walls, vector<Bullet>& ammos, Player& player, 
         };
         Vector2 direction = { worldMousePosition.x - playerCenter.x, worldMousePosition.y - playerCenter.y };
 
+        // Нормализация вектора направления
         float length = sqrtf(direction.x * direction.x + direction.y * direction.y);
         direction.x /= length;
         direction.y /= length;
@@ -84,19 +85,44 @@ void keyHandle(vector<Rectangle>& walls, vector<Bullet>& ammos, Player& player, 
     }
 }
 
-
-void updateBullets(vector<Bullet>& ammos, vector<Rectangle>& walls, const optional<Enemy>& enemy) {
+void updateBullets(vector<Bullet>& ammos, vector<Rectangle>& walls, vector<Enemy>& enemies) {
     for (auto it = ammos.begin(); it != ammos.end(); ) {
         Bullet& bullet = *it;
         bullet.position.x += bullet.direction.x * bullet.speed;
         bullet.position.y += bullet.direction.y * bullet.speed;
 
-        if (checkCollisionBullet(bullet, walls)) {
+        bool hitWall = checkCollisionBullet(bullet, walls);
+        bool hitEnemy = false;
+
+        for (auto& enemy : enemies) {
+            if (CheckCollisionCircleRec(bullet.position, bullet.radius, enemy.hitbox)) {
+                hitEnemy = true;
+                enemy.health -= 10;  // Уменьшение здоровья врага при попадании пули
+                if (enemy.health <= 0) {
+                    enemy.hitbox = { 0, 0, 0, 0 };  // Удаление врага
+                }
+                break;
+            }
+        }
+
+        if (hitWall || hitEnemy) {
             it = ammos.erase(it);
         }
         else {
             ++it;
         }
+    }
+}
+
+void updateEnemies(vector<Enemy>& enemies, const Player& player) {
+    for (auto& enemy : enemies) {
+        Vector2 direction = { player.hitbox.x - enemy.hitbox.x, player.hitbox.y - enemy.hitbox.y };
+        float length = sqrtf(direction.x * direction.x + direction.y * direction.y);
+        direction.x /= length;
+        direction.y /= length;
+
+        enemy.hitbox.x += direction.x * enemy.speed;
+        enemy.hitbox.y += direction.y * enemy.speed;
     }
 }
 

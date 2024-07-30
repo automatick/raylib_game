@@ -1,4 +1,7 @@
 ﻿#include "funcs.h"
+using namespace std;
+
+
 
 int main(void)
 {
@@ -28,6 +31,11 @@ int main(void)
         { 2000, 2000, 400, 20 }
     };
 
+    vector<Enemy> enemies = {
+        { { 100, 100, 40, 40 }, { 100, 100 }, 100, 2.0f },
+        { { 500, 500, 40, 40 }, { 500, 500 }, 100, 2.0f }
+    };
+
     Camera2D camera = { 0 };
     camera.target = { player.hitbox.x + player.hitbox.width / 2.0f, player.hitbox.y + player.hitbox.height / 2.0f };
     camera.offset = { screenWidth / 2.0f, screenHeight / 2.0f };
@@ -39,7 +47,7 @@ int main(void)
 
     while (!WindowShouldClose())
     {
-       keyHandle(walls, ammos, player, camera, dashPoints, shootTimer, shootCooldown, playerCenter);
+        keyHandle(walls, ammos, player, camera, dashPoints, shootTimer, shootCooldown, playerCenter);
 
         shootTimer -= GetFrameTime();
 
@@ -47,7 +55,8 @@ int main(void)
             debug = !debug;
         }
 
-        updateBullets( ammos, walls, nullopt );
+        updateBullets(ammos, walls, enemies);
+        updateEnemies(enemies, player);
 
         BeginDrawing();
 
@@ -66,6 +75,13 @@ int main(void)
         for (const auto& bullet : ammos)
         {
             DrawCircleV(bullet.position, bullet.radius, DARKBLUE);
+        }
+
+        for (const auto& enemy : enemies)
+        {
+            if (enemy.health > 0) {
+                DrawRectangleRec(enemy.hitbox, DARKPURPLE);
+            }
         }
 
         if (debug) {

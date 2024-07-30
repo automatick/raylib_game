@@ -2,11 +2,10 @@
 #include "raylib.h"
 
 struct Enemy {
-    Rectangle hitbox = { 30, 30, 40, 40 };
+    Rectangle hitbox;
     Vector2 position;
     unsigned int health;
-    unsigned int width;
-    unsigned int height;
+    float speed;
 };
 
 struct Player {
