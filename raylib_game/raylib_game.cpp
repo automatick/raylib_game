@@ -14,27 +14,19 @@ int main(void)
     Vector2 playerCenter = { player.hitbox.x + player.hitbox.width / 2.0f, player.hitbox.y + player.hitbox.height / 2.0f };
     Rectangle map = { 0, 0, 5000, 4000 };
     vector<Bullet> ammos = {};
-    float shootCooldown = 0.5f;
+    float shootCooldown = 0.2f;
     float shootTimer = 0.0f;
 
     bool debug = false;
 
-    vector<Rectangle> walls = {
-    { 0, 0, 20, 5000 },
-    { 0, 0, 5000, 20 },
-    { 0, 3980, 5000, 20 },
-    { 4980, 0, 20, 4000 },
-    { 500, 200, 300, 20 },
-    { 800, 600, 20, 400 },
-    { 1000, 1000, 400, 20 },
-    { 1500, 1500, 20, 400 },
-    { 2000, 2000, 400, 20 }
-    };
+    vector<Rectangle> walls = GenerateMap(map.width, map.height, 2);
 
+    unsigned int enemyCount = 2;
+    unsigned int maxEnemies = 10;
 
     vector<Enemy> enemies = {
-        { { 100, 100, 40, 40 }, { 0, 0 }, 100, 5.0f },
-        { { 500, 500, 40, 40 }, { 0, 0 }, 100, 5.0f }
+        { { 1400, 1400, 40, 40 }, { 0, 0 }, 100, 5.0f },
+        { { 1400, 1400, 40, 40 }, { 0, 0 }, 100, 5.0f }
     };
 
     Camera2D camera = { 0 };
@@ -44,25 +36,42 @@ int main(void)
     camera.zoom = 1.0f;
     unsigned char dashPoints = 200;
     unsigned int kills = 0;
+    char dh = 1;
+    const unsigned int MAX_ENEMIES_LIMIT = 50;
+    static unsigned int lastKillCount = 0;
 
     SetTargetFPS(60);
 
-    mainMenu();
+    mainMenu(screenWidth, screenHeight);
 
     while (!WindowShouldClose())
     {
-        keyHandle(walls, ammos, player, camera, dashPoints, shootTimer, shootCooldown, playerCenter);
+        keyHandle(walls, ammos, player, camera, dashPoints, shootTimer, shootCooldown, playerCenter, dh);
         shootTimer -= GetFrameTime();
         if (IsKeyPressed(KEY_F)) {
             debug = !debug;
         }
-
-        updateBullets(ammos, walls, enemies, kills);
+        if (enemyCount < maxEnemies && maxEnemies < MAX_ENEMIES_LIMIT) {
+            if (kills / 10 > lastKillCount) {
+                maxEnemies++;
+                enemies.push_back({ { 1400, 1400, 80, 80 }, { 0, 0 }, 300, 4.0f });
+                lastKillCount = kills / 10;
+            }
+            else {
+                enemies.push_back({ { 1400, 1400, 40, 40 }, { 0, 0 }, 100, 5.0f });
+            }
+            enemyCount++;
+        }
+        updateBullets(ammos, walls, enemies, kills, enemyCount);
         updateEnemies(enemies, player, walls, kills);
         
+        if (player.hearts <= 0 || player.hearts == 255) {
+            goto exit_;
+        }
+
         BeginDrawing();
         
-        ClearBackground(RAYWHITE);
+        ClearBackground(BLACK);
         BeginMode2D(camera);
         DrawRectangleRec(map, DARKGRAY);
         for (const auto& wall : walls)
@@ -86,10 +95,11 @@ int main(void)
         
         EndMode2D();
         
-        drawUI(player, dashPoints);
+        drawUI(player, dashPoints, kills);
         
         EndDrawing();
     }
-    CloseWindow();
-    return 0;
+    exit_:
+        CloseWindow();
+        return 0;
 }

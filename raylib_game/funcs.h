@@ -1,6 +1,6 @@
 #include "handle_funcs.h"
 
-void keyHandle(vector<Rectangle>& walls, vector<Bullet>& ammos, Player& player, Camera2D& camera, unsigned char& dashPoints, float& shootTimer, float shootCooldown, Vector2& playerCenter) {
+void keyHandle(vector<Rectangle>& walls, vector<Bullet>& ammos, Player& player, Camera2D& camera, unsigned char& dashPoints, float& shootTimer, float shootCooldown, Vector2& playerCenter, char& dh) {
     Vector2 movement = { 0.0f, 0.0f };
     moveHandle(movement, 1.0f);
 
@@ -22,7 +22,7 @@ void keyHandle(vector<Rectangle>& walls, vector<Bullet>& ammos, Player& player, 
         shootTimer = shootCooldown;
     }
 
-    dashHandle(movement, dashPoints);
+    dashHandle(movement, dashPoints, dh);
 
     Rectangle nextPosition = player.hitbox;
     nextPosition.x += movement.x;
@@ -32,8 +32,14 @@ void keyHandle(vector<Rectangle>& walls, vector<Bullet>& ammos, Player& player, 
         player.hitbox = nextPosition;
         playerCenter = calcPlayerCenter(player);
     }
-
-    dashPoints = min(dashPoints + 1, 200);
+    if (dh == 1) {
+        dashPoints = min(dashPoints + 1, 200);
+        dh = 0;
+    }
+    else
+    {
+        dh = 1;
+    }
     camera.target = calcPlayerCenter(player);
     float zoomChange = GetMouseWheelMove() * 0.05f;
     camera.zoom = Clamp(camera.zoom + zoomChange, 0.1f, 3.0f);
@@ -44,7 +50,7 @@ void keyHandle(vector<Rectangle>& walls, vector<Bullet>& ammos, Player& player, 
     }
 }
 
-void updateBullets(vector<Bullet>& ammos, vector<Rectangle>& walls, vector<Enemy>& enemies, unsigned int kills) {
+void updateBullets(vector<Bullet>& ammos, vector<Rectangle>& walls, vector<Enemy>& enemies, unsigned int& kills, unsigned int &enemyCount) {
     for (auto it = ammos.begin(); it != ammos.end(); ) {
         Bullet& bullet = *it;
         bullet.position.x += bullet.direction.x * bullet.speed;
@@ -52,20 +58,25 @@ void updateBullets(vector<Bullet>& ammos, vector<Rectangle>& walls, vector<Enemy
 
         bool hitWall = checkCollisionBullet(bullet, walls);
         bool hitEnemy = false;
+        auto enemyIt = enemies.end();
 
-        for (auto& enemy : enemies) {
-            if (CheckCollisionCircleRec(bullet.position, bullet.radius, enemy.hitbox)) {
+        for (auto eIt = enemies.begin(); eIt != enemies.end(); ++eIt) {
+            if (CheckCollisionCircleRec(bullet.position, bullet.radius, eIt->hitbox)) {
                 hitEnemy = true;
-                enemy.health -= 10;
-                if (enemy.health <= 0) {
-                    enemy.hitbox = { 0, 0, 0, 0 };
-					kills++;
+                eIt->health -= 10;
+                if (eIt->health <= 0) {
+                    enemyIt = eIt;
+                    enemyCount--;
+                    kills++;
                 }
                 break;
             }
         }
 
         if (hitWall || hitEnemy) {
+            if (hitEnemy && enemyIt != enemies.end()) {
+                enemies.erase(enemyIt);
+            }
             it = ammos.erase(it);
         }
         else {
@@ -74,7 +85,37 @@ void updateBullets(vector<Bullet>& ammos, vector<Rectangle>& walls, vector<Enemy
     }
 }
 
-void updateEnemies(vector<Enemy>& enemies, Player& player, const vector<Rectangle>& walls, unsigned int kills) {
+
+
+vector<Rectangle> GenerateMap(int mapWidth, int mapHeight, int wallThickness) {
+    vector<Rectangle> walls;
+
+    // Создаем границы карты
+    walls.push_back(Rectangle( 0, 0, mapWidth, wallThickness )); // Верхняя граница
+    walls.push_back(Rectangle( 0, 0, wallThickness, mapHeight )); // Левая граница
+    walls.push_back(Rectangle( 0, mapHeight - wallThickness, mapWidth, wallThickness )); // Нижняя граница
+    walls.push_back(Rectangle (mapWidth - wallThickness, 0, wallThickness, mapHeight )); // Правая граница
+
+    // Внутренние стены (примеры, вы можете настроить их по своему усмотрению)
+    int numInternalWalls = 50; // Количество внутренних стен
+    for (int i = 0; i < numInternalWalls; ++i) {
+        // Генерация случайного размера и положения стен
+        float x = GetRandomValue(0, mapWidth - wallThickness);
+        float y = GetRandomValue(0, mapHeight - wallThickness);
+        float width = GetRandomValue(wallThickness, 300);
+        float height = GetRandomValue(wallThickness, 300);
+
+        // Убедитесь, что стенка не полностью перекрывает пространство
+        if (x + width > mapWidth) width = mapWidth - x;
+        if (y + height > mapHeight) height = mapHeight - y;
+
+        walls.push_back({ x, y, width, height });
+    }
+
+    return walls;
+}
+
+void updateEnemies(vector<Enemy>& enemies, Player& player, const vector<Rectangle>& walls, unsigned int &kills) {
     srand(time(nullptr));
     for (auto& enemy : enemies) {
 
@@ -127,10 +168,6 @@ void updateEnemies(vector<Enemy>& enemies, Player& player, const vector<Rectangl
         if (CheckCollisionRecs(player.hitbox, enemy.hitbox)) {
 			direction = { 0, 0 };
             player.hearts -= 1;
-            if (player.hearts <= 0) {
-				player.hitbox = { 0, 0, 0, 0 };
-                exit(kills);
-			}
         }
         enemy.hitbox.x += direction.x * enemy.speed;
         enemy.hitbox.y += direction.y * enemy.speed;
