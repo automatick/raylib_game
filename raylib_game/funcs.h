@@ -89,23 +89,17 @@ void updateBullets(vector<Bullet>& ammos, vector<Rectangle>& walls, vector<Enemy
 
 vector<Rectangle> GenerateMap(int mapWidth, int mapHeight, int wallThickness) {
     vector<Rectangle> walls;
+    walls.push_back(Rectangle( 0, 0, mapWidth, wallThickness ));
+    walls.push_back(Rectangle( 0, 0, wallThickness, mapHeight ));
+    walls.push_back(Rectangle( 0, mapHeight - wallThickness, mapWidth, wallThickness ));
+    walls.push_back(Rectangle(mapWidth - wallThickness, 0, wallThickness, mapHeight ));
 
-    // Создаем границы карты
-    walls.push_back(Rectangle( 0, 0, mapWidth, wallThickness )); // Верхняя граница
-    walls.push_back(Rectangle( 0, 0, wallThickness, mapHeight )); // Левая граница
-    walls.push_back(Rectangle( 0, mapHeight - wallThickness, mapWidth, wallThickness )); // Нижняя граница
-    walls.push_back(Rectangle (mapWidth - wallThickness, 0, wallThickness, mapHeight )); // Правая граница
-
-    // Внутренние стены (примеры, вы можете настроить их по своему усмотрению)
-    int numInternalWalls = 50; // Количество внутренних стен
+    int numInternalWalls = 50;
     for (int i = 0; i < numInternalWalls; ++i) {
-        // Генерация случайного размера и положения стен
         float x = GetRandomValue(0, mapWidth - wallThickness);
         float y = GetRandomValue(0, mapHeight - wallThickness);
         float width = GetRandomValue(wallThickness, 300);
         float height = GetRandomValue(wallThickness, 300);
-
-        // Убедитесь, что стенка не полностью перекрывает пространство
         if (x + width > mapWidth) width = mapWidth - x;
         if (y + height > mapHeight) height = mapHeight - y;
 
